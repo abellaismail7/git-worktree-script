@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+
+# AUTOCOMPLETION FOR BASH
+# Reference: https://www.gnu.org/software/bash/manual/html_node/A-Programmable-Completion-Example.html
+
+# wt list: list all the available worktrees
+# | awk '{ print $1; }': grab the first column of the output
+# | tr "\n" " ": replace line break character with space to put the worktrees on single line
+# separated by space
+
+_wt() {
+    local cur opts cmd
+    COMPREPLY=()
+    cur="${COMP_WORDS[COMP_CWORD]}"
+    #list="$(wt list | awk '{ print $1; }' | tr "\n" " ")"
+
+    # Only show suggestions for the root command (wt)
+    # Pass autocompletion suggestion as "words (-W)" to `compgen` separated by space
+	if [[ ${cur} == -* || ${COMP_CWORD} -eq 1 ]]; then
+		opts="add ch create list help"
+		local cur=${COMP_WORDS[COMP_CWORD]}
+		# shellcheck disable=SC2207
+		COMPREPLY=($(compgen -W "$opts" -- "$cur"))
+		return 0
+	fi
+
+	list="`git branch --format "%(refname:short)"`"
+	
+    opts="$list"
+
+	cmd="${COMP_WORDS[1]}"
+
+	if [[ "$cmd" == "add" && ${COMP_CWORD} -eq 2 ]]; then
+        local cur=${COMP_WORDS[COMP_CWORD]}
+        # shellcheck disable=SC2207
+        COMPREPLY=($(compgen -W "$opts" -- "$cur"))
+		return 0
+    fi
+
+	if [[ "$cmd" == "ch" && ${COMP_CWORD} -eq 2 ]]; then
+		local cur=${COMP_WORDS[COMP_CWORD]}
+		# shellcheck disable=SC2207
+		opts="`git worktree list --porcelain | awk '$1 == "branch"  {print $2}' | sed 's#^refs/heads/##g'`"
+		COMPREPLY=($(compgen -W "$opts" -- "$cur"))
+		return 0
+	fi
+
+	if [[ "$cmd" == "create" && ${COMP_CWORD} -eq 3 ]]; then
+		local cur=${COMP_WORDS[COMP_CWORD]}
+		# shellcheck disable=SC2207
+		COMPREPLY=($(compgen -W "$opts" -- "$cur"))
+		return 0
+	fi
+}
+
+# complete
+#   -F: take function as completion provider
+#   _wt: name of the function
+#   wt: name of the command this completion is meant for
+complete -F _wt wt
